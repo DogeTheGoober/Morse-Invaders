@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0e1116" />
+  <title>Morse Invaders</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Morse" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header>
+      <button class="back-btn" id="backBtn" style="display:none">‹ Back</button>
+      <h1 id="title">Morse Invaders</h1>
+      <span class="spacer"></span>
+      <span class="muted" id="unlockedInfo"></span>
+    </header>
+
+    <!-- MENU -->
+    <section class="screen active" id="screen-menu">
+      <div class="menu-grid">
+        <div class="section-label">Learn</div>
+        <button class="tile wide" data-go="learn">Learn <small>New letters, one at a time (Koch)</small></button>
+        <button class="tile" data-go="see">See → Key <small>See a letter, key its code</small></button>
+        <button class="tile" data-go="echo">Echo <small>Hear code, key it back</small></button>
+        <button class="tile" data-go="practice">Practice <small>Adaptive drill on your weak letters</small></button>
+        <button class="tile" data-go="hard">Hard Mode <small>Hear it, tap the letter — no hints</small></button>
+
+        <div class="section-label">Games</div>
+        <button class="tile" data-go="game-invaders">Space Invaders <small>Defend 3 pylons</small></button>
+        <button class="tile" data-go="game-falling">Falling Letters <small>Key before they land</small></button>
+        <button class="tile" data-go="game-rhythm">Guitar Hero <small>Key in rhythm</small></button>
+        <button class="tile" data-go="game-missile">Missile Command <small>Intercept incoming — defend 4 cities</small></button>
+
+        <div class="section-label">More</div>
+        <button class="tile" data-go="stats">Stats <small>Your mastery map</small></button>
+        <button class="tile" data-go="config">⚙ Settings <small>Input, speed, tone, theme</small></button>
+      </div>
+    </section>
+
+    <!-- LEARN / PRACTICE share a drill screen -->
+    <section class="screen" id="screen-drill">
+      <div class="hud">
+        <span id="drillMode">Learn</span>
+        <span>Score <b id="drillScore">0</b> · Streak <b id="drillStreak">0</b></span>
+      </div>
+      <div class="seg-group" id="orderSeg" style="display:none">
+        <div class="seg" data-order="koch">Koch</div>
+        <div class="seg" data-order="alpha">A–Z</div>
+        <div class="seg" data-order="random">Random</div>
+        <div class="seg" data-order="easy">Easy→Hard</div>
+      </div>
+      <button class="btn ghost" id="reshuffleBtn" style="display:none;width:auto;align-self:center;padding:8px 14px">🔀 Reshuffle random order</button>
+      <div class="range-bar" id="rangeBar" style="display:none">
+        <span class="muted">Range</span>
+        <select id="rangeFrom"></select>
+        <span class="muted">→</span>
+        <select id="rangeTo"></select>
+      </div>
+      <div class="seg-group" id="seqSeg" style="display:none">
+        <div class="seg" data-seq="random">🎲 Random</div>
+        <div class="seg" data-seq="sequential">🔤 Sequential</div>
+      </div>
+      <div id="drillIntro" style="display:none">
+        <div class="card">
+          <div class="center" style="font-weight:700;margin-bottom:4px">Morse alphabet</div>
+          <div class="muted center" style="margin-bottom:10px">Review the codes — tap any to hear it, then continue.</div>
+          <div class="code-chart" id="codeChart"></div>
+        </div>
+        <button class="btn" id="continueBtn" style="margin-top:12px">Continue →</button>
+      </div>
+      <div class="card prompt-area" id="promptCard">
+        <div class="big-letter" id="promptLetter">–</div>
+        <div class="pattern" id="promptPattern"></div>
+        <div class="sub" id="promptSub"></div>
+        <div class="feedback" id="drillFeedback"></div>
+      </div>
+      <div class="live-buffer" id="liveBuffer"></div>
+      <div class="row" id="replayRow" style="justify-content:center">
+        <button class="btn ghost" id="replayBtn" style="width:auto;padding:10px 18px">▶ Replay</button>
+      </div>
+      <div class="alpha-grid" id="alphaGrid" style="display:none"></div>
+      <div class="keypad" id="keypad"></div>
+    </section>
+
+    <!-- GENERIC GAME (canvas) -->
+    <section class="screen" id="screen-game">
+      <div class="hud">
+        <span id="gameName">Game</span>
+        <span>Score <b id="gameScore">0</b></span>
+      </div>
+      <canvas id="gameCanvas" style="width:100%;background:#05070b;border-radius:12px;flex:1;min-height:300px"></canvas>
+      <div class="live-buffer" id="gameBuffer"></div>
+      <div class="keypad" id="gameKeypad"></div>
+    </section>
+
+    <!-- STATS -->
+    <section class="screen" id="screen-stats">
+      <div class="card">
+        <div class="muted" id="statsSummary"></div>
+      </div>
+      <div class="heat" id="heat"></div>
+      <button class="btn danger" id="resetProgress">Reset all progress</button>
+    </section>
+
+    <!-- CONFIG -->
+    <section class="screen" id="screen-config">
+      <div class="card">
+        <div class="row"><label>Input method</label></div>
+        <div class="seg-group" id="inputSeg">
+          <div class="seg" data-input="straight">Straight key (1 button)</div>
+          <div class="seg" data-input="paddle">Paddle (2 buttons)</div>
+        </div>
+        <div class="row" id="thresholdRow">
+          <label>Dot/dash threshold</label>
+          <input type="range" id="cfgThreshold" min="80" max="300" step="10" />
+          <span class="val" id="cfgThresholdVal"></span>
+        </div>
+        <div class="row">
+          <label>Input spacing (letter gap)</label>
+          <input type="range" id="cfgGap" min="250" max="2500" step="50" />
+          <span class="val" id="cfgGapVal"></span>
+        </div>
+        <div class="muted">Wait time after your last tap before the letter locks in. Raise it for a slower, more forgiving pace.</div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <label>Speed (WPM)</label>
+          <input type="range" id="cfgWpm" min="8" max="35" step="1" />
+          <span class="val" id="cfgWpmVal"></span>
+        </div>
+        <div class="row">
+          <label>Tone (Hz)</label>
+          <input type="range" id="cfgTone" min="400" max="900" step="10" />
+          <span class="val" id="cfgToneVal"></span>
+        </div>
+        <div class="row">
+          <label>Volume</label>
+          <input type="range" id="cfgVol" min="0" max="1" step="0.05" />
+          <span class="val" id="cfgVolVal"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <label>Show hints (letter/pattern)</label>
+          <div class="seg-group" style="flex:0 0 auto">
+            <div class="seg" id="hintsOn">On</div>
+            <div class="seg" id="hintsOff">Off</div>
+          </div>
+        </div>
+        <div class="row"><label>Theme</label></div>
+        <div class="theme-grid" id="themeGrid"></div>
+        <div id="customThemeRow" style="display:none">
+          <div class="row"><label>Background</label><input type="color" id="customBg" class="color-in" /></div>
+          <div class="row"><label>Text</label><input type="color" id="customFg" class="color-in" /></div>
+          <div class="row"><label>Accent</label><input type="color" id="customAccent" class="color-in" /></div>
+        </div>
+        <div class="row">
+          <label>Vibrate (feel the code)
+            <div class="muted">Buzz the dots &amp; dashes as you hear/key them. Android only — iOS browsers don't support vibration.</div>
+          </label>
+          <label class="switch"><input type="checkbox" id="cfgVibrate"><span class="track"></span></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row"><label>Background image</label></div>
+        <input type="file" id="bgFile" accept="image/*" style="display:none" />
+        <button class="btn ghost" id="bgUpload">Upload image</button>
+        <div id="bgControls" style="display:none">
+          <div class="row">
+            <label>Image dim</label>
+            <input type="range" id="bgDim" min="0" max="0.9" step="0.05" />
+            <span class="val" id="bgDimVal"></span>
+          </div>
+          <div class="row">
+            <label>Blur</label>
+            <input type="range" id="bgBlur" min="0" max="20" step="1" />
+            <span class="val" id="bgBlurVal"></span>
+          </div>
+          <button class="btn danger" id="bgRemove">Remove image</button>
+        </div>
+        <div class="muted" style="margin-top:8px">Uploaded images are downscaled and stored on this device only.</div>
+      </div>
+
+      <div class="card">
+        <div class="row"><label>Learn style</label></div>
+        <div class="seg-group" id="learnStyleSeg">
+          <div class="seg" data-style="normal">Normal</div>
+          <div class="seg" data-style="see">See→Key</div>
+          <div class="seg" data-style="hard">Hard</div>
+        </div>
+        <div class="muted" id="learnStyleHint"></div>
+      </div>
+
+      <div class="card">
+        <div class="row"><label>Advance to next letter after</label></div>
+        <div class="seg-group" id="masterySeg">
+          <div class="seg" data-mastery="count">Times correct</div>
+          <div class="seg" data-mastery="percent">Accuracy %</div>
+        </div>
+        <div class="row" id="masteryCountRow">
+          <label>Correct answers needed</label>
+          <input type="range" id="cfgMasteryCount" min="1" max="10" step="1" />
+          <span class="val" id="cfgMasteryCountVal"></span>
+        </div>
+        <div class="row" id="masteryPercentRow">
+          <label>Accuracy needed (over ≥5 tries)</label>
+          <input type="range" id="cfgMasteryPercent" min="60" max="100" step="5" />
+          <span class="val" id="cfgMasteryPercentVal"></span>
+        </div>
+      </div>
+
+      <button class="btn ghost" id="testTone">Test tone (play SOS)</button>
+    </section>
+  </div>
+
+  <script src="js/morse.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/themes.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/progress.js"></script>
+  <script src="js/keyer.js"></script>
+  <script src="js/games/invaders.js"></script>
+  <script src="js/games/falling.js"></script>
+  <script src="js/games/rhythm.js"></script>
+  <script src="js/games/missile.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    // Register the service worker (PWA offline). No-op inside Capacitor / on file://.
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>
