@@ -5,6 +5,12 @@ Learn the code the way real operators do (Koch method), then drill your weak
 letters by blasting them out of the sky. Runs as a web app, an installable PWA,
 or a native iOS/Android app — all from one codebase.
 
+## Screenshots
+
+| Space Invaders | Falling Letters | Missile Command | Guitar Hero |
+|:---:|:---:|:---:|:---:|
+| ![Space Invaders](docs/screenshots/invaders.jpg) | ![Falling Letters](docs/screenshots/falling.jpg) | ![Missile Command](docs/screenshots/missile.jpg) | ![Guitar Hero](docs/screenshots/rhythm.jpg) |
+
 ## Features
 
 **Learn & practice**
