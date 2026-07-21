@@ -1,0 +1,108 @@
+name: Release
+
+# Push a tag like v1.0.0 to build all three platforms and publish a GitHub
+# Release with the .ipa, .apk, and .exe attached.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  ios:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Add iOS platform
+        run: npx cap add ios
+      - name: Sync
+        run: npx cap sync ios
+      - name: Archive (unsigned)
+        run: |
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App -configuration Release -sdk iphoneos \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" archive \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" PROVISIONING_PROFILE=""
+      - name: Package .ipa
+        run: |
+          cd "$RUNNER_TEMP"
+          mkdir -p Payload
+          cp -R App.xcarchive/Products/Applications/App.app Payload/
+          zip -r MorseInvaders.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ipa
+          path: ${{ runner.temp }}/MorseInvaders.ipa
+          if-no-files-found: error
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Install dependencies
+        run: npm install
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Add Android platform
+        run: npx cap add android
+      - name: Sync
+        run: npx cap sync android
+      - name: Build debug APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk MorseInvaders.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: MorseInvaders.apk
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Build portable EXE
+        run: npm run dist:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: exe
+          path: dist/*.exe
+          if-no-files-found: error
+
+  release:
+    needs: [ios, android, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-files
+          merge-multiple: true
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-files/**/*
+          generate_release_notes: true

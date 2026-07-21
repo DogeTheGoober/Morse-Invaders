@@ -25,6 +25,8 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 
       - name: Add Android platform (generates the Gradle project)
         run: npx cap add android

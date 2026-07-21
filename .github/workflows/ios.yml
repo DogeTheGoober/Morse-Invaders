@@ -20,6 +20,8 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 
       - name: Add iOS platform (generates the Xcode project)
         run: npx cap add ios

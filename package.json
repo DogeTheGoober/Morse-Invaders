@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "description": "Learn Morse code with adaptive drills and arcade games.",
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
     "cap:add:ios": "cap add ios",
     "cap:add:android": "cap add android",
-    "cap:sync": "cap sync"
+    "cap:sync": "cap sync",
+    "electron": "electron .",
+    "dist:win": "electron-builder --win --publish never"
   },
   "dependencies": {
     "@capacitor/core": "^6.1.2",
@@ -15,6 +18,18 @@
   "devDependencies": {
     "@capacitor/cli": "^6.1.2",
     "@capacitor/ios": "^6.1.2",
-    "@capacitor/android": "^6.1.2"
+    "@capacitor/android": "^6.1.2",
+    "electron": "^31.7.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.morseinvaders.app",
+    "productName": "Morse Invaders",
+    "files": ["electron/**/*", "www/**/*", "package.json"],
+    "directories": { "output": "dist" },
+    "win": {
+      "target": "portable",
+      "artifactName": "MorseInvaders-${version}-portable.${ext}"
+    }
   }
 }
